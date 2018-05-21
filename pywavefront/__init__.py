@@ -58,6 +58,7 @@ class Wavefront(object):
         self.mesh_list.append(the_mesh)
         self.meshes[the_mesh.name] = the_mesh
 
+
 class ObjParser(parser.Parser):
     """This parser parses lines from .obj files."""
     def __init__(self, wavefront, file_name):
@@ -69,11 +70,16 @@ class ObjParser(parser.Parser):
         self.vertices = [[0., 0., 0.]]
         self.normals = [[0., 0., 0.]]
         self.tex_coords = [[0., 0.]]
+        self.colors = [[0., 0., 0.]]
         self.read_file(file_name)
 
     # methods for parsing types of wavefront lines
     def parse_v(self, args):
         self.vertices.append(list(map(float, args[0:3])))
+
+        # check if vertex includes color information
+        if len(args) == 6:
+            self.colors.append(list(map(float, args[-3:])))
 
     def parse_vn(self, args):
         self.normals.append(list(map(float, args[0:3])))
@@ -115,6 +121,7 @@ class ObjParser(parser.Parser):
             self.wavefront.add_mesh(self.mesh)
         if self.material is None:
             self.material = material.Material()
+            self.material.colors = []
             self.wavefront.materials[self.material.name] = self.material
         self.mesh.add_material(self.material)
 
@@ -122,6 +129,7 @@ class ObjParser(parser.Parser):
         v1 = None
         vlast = None
         points = []
+        has_color = isinstance(self.material.colors, list)
         for i, v in enumerate(args[0:]):
             if type(v) is bytes:
                 v = v.decode()
@@ -136,6 +144,9 @@ class ObjParser(parser.Parser):
             vertex = list(self.tex_coords[t_index]) + \
                      list(self.normals[n_index]) + \
                      list(self.vertices[v_index]) 
+
+            if has_color:
+                self.material.colors += list(self.colors[v_index])
 
             if i >= 3:
                 # Triangulate
